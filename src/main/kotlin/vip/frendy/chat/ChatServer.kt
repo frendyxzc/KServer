@@ -56,6 +56,10 @@ class ChatServer {
         members[recipient]?.send(Frame.Text("[$sender] $message"))
     }
 
+    suspend fun sendToOne(recipient: String, sender: String, message: String) {
+        members[recipient]?.send(Frame.Text("[from $sender] $message"))
+    }
+
     suspend fun message(sender: String, message: String) {
         val name = memberNames[sender] ?: sender
         val formatted = "[$name] $message"
@@ -112,8 +116,24 @@ class ChatServer {
                 }
             }
             command.startsWith("/help") -> help(id)
-            command.startsWith("/") -> sendTo(id, "server::help", "Unknown command ${command.takeWhile { !it.isWhitespace() }}")
+            command.startsWith("/") -> {
+                val name = command.takeWhile { !it.isWhitespace() }.substring(1)
+                val message = if(command.length > name.length + 1) command.substring(name.length + 1) else ""
+                if(memberNames.contains(name)) {
+                    sendTo(id, memberNames[id]!!, command)
+                    sendToOne(getMemberId(name), memberNames[id]!!, message)
+                } else {
+                    sendTo(id, "server::help", "Unknown command ${command.takeWhile { !it.isWhitespace() }}")
+                }
+            }
             else -> message(id, command)
         }
+    }
+
+    private fun getMemberId(name: String): String {
+        for(member in memberNames) {
+            if(member.value.equals(name)) return member.key
+        }
+        return ""
     }
 }
