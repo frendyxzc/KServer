@@ -2,7 +2,7 @@ var socket = null;
 
 function connect() {
     console.log("Begin connect");
-    socket = new WebSocket("ws://" + window.location.host + "/ws");
+    socket = new WebSocket("ws://" + window.location.host + "/ws/room100");
 
     socket.onerror = function() {
         console.log("socket error");

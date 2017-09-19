@@ -59,13 +59,14 @@ fun Application.module() {
                 call.sessions.set(ChatSession(nextNonce()))
             }
         }
-        webSocket("/ws") {
+        webSocket("/ws/{param?}") {
             val session = call.sessions.get<ChatSession>()
             if (session == null) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
                 return@webSocket
             }
 
+            println("** room is: ${call.parameters["param"]}\n")
             mChatServer.memberJoin(session.id, this)
 
             try {
