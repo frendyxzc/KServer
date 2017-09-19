@@ -20,13 +20,13 @@ import org.jetbrains.ktor.freemarker.FreeMarkerContent
 import org.jetbrains.ktor.sessions.*
 import org.jetbrains.ktor.util.nextNonce
 import org.jetbrains.ktor.websocket.*
-import vip.frendy.chat.ChatServer
+import vip.frendy.chat.ChatRoomServer
 import vip.frendy.chat.ChatSession
 import java.io.File
 import java.time.Duration
 
 
-private val mChatServer = ChatServer()
+private val mChatServer = ChatRoomServer()
 
 fun Application.module() {
     install(DefaultHeaders)
@@ -59,24 +59,23 @@ fun Application.module() {
                 call.sessions.set(ChatSession(nextNonce()))
             }
         }
-        webSocket("/ws/{param?}") {
+        webSocket("/ws/{room?}") {
             val session = call.sessions.get<ChatSession>()
             if (session == null) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No session"))
                 return@webSocket
             }
 
-            println("** room is: ${call.parameters["param"]}\n")
-            mChatServer.memberJoin(session.id, this)
+            mChatServer.memberJoin(session.id, this, call.parameters["room"])
 
             try {
                 incoming.consumeEach { frame ->
                     if (frame is Frame.Text) {
-                        mChatServer.receivedMessage(session.id, frame.readText())
+                        mChatServer.receivedMessage(session.id, frame.readText(), call.parameters["room"])
                     }
                 }
             } finally {
-                mChatServer.memberLeft(session.id, this)
+                mChatServer.memberLeft(session.id, this, call.parameters["room"])
             }
         }
         static {
